@@ -1,0 +1,1 @@
+Play ascii animations in terminal.
