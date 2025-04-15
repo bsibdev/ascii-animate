@@ -1,0 +1,64 @@
+#!/bin/bash
+
+directory=$1 #directory containing the .png images | "/home/comfy/Videos/ascii/dva-w"
+timing=$2 #gap between frames | 0.03933333333333333333333333333333
+background=$3 #light/dark
+redraw=$4 #redraw to generate new ascii files. leave option blank to keep existing ones.
+
+# Iterate over each .png file in the specified directory
+#
+
+create_ascii () {
+	for image in "$directory"/*.png; 
+	do
+		filename=$(basename "$image" .png)
+	        # Run jp2a with the --colors option on the image
+		echo "Generating new ascii files"
+	       	jp2a "$image" --colors --background=$background > "$directory/ascii/$filename.txt"
+	done
+}
+
+if [ "$redraw" == "redraw" ]; then
+	echo "Deleting old ascii files..."
+	rm -f "$directory"/ascii/*.txt
+	echo "Creating new ascii files..."
+	create_ascii
+fi
+
+ascii_dir="$directory/ascii"
+
+if [ ! -d $ascii_dir ];then
+	mkdir $ascii_dir
+fi
+
+if ! find "$ascii_dir" -name '*.txt' -type f | grep -q .; then
+	echo "No ascii files found in $directory, creating then now..."
+	create_ascii
+fi
+
+<<cmt
+echo "comment"
+dynamize_size () {
+	#dynamic ascii size
+	ascii_width=
+	ascii_height=
+
+	kitty_width=
+	kitty_height=
+	
+	x_delta=(($kitty_width - $ascii_x))
+	y_delta=
+
+	cut_num=
+} 
+cmt
+
+running=1
+
+while [ $running -eq 1 ];do
+	for ascii in $ascii_dir/*.txt;
+	do
+		clear; cat $ascii
+		sleep $timing
+	done
+done
