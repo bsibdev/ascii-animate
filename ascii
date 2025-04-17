@@ -1,128 +1,43 @@
 #!/bin/bash
 
-frame_timing=0.04 
-background="dark"
-redraw=false
-video=""
-png_directory=""
-ascii_directory=""
+directory=$1 #directory containing the .png images | "/home/comfy/Videos/ascii/dva-w"
+timing=$2 #gap between frames | 0.03933333333333333333333333333333
+background=$3 #light/dark
+redraw=$4 #redraw to generate new ascii files. leave option blank to keep existing ones.
 
-dependencies=("ffmpeg" "jp2a")
-
-for dependency in "${dependencies[@]}";do
-	if ! command -v "$dependency" >/dev/null 2>&1; then
-		echo "Dependency missing: $dependency"
-		echo "(sudo required) trying to install $dependency..."
-		sudo apt install "$dependency" -y
-	fi
-done
-
-show_help() {
-    echo "Usage: $0 [-p <png_directory>] [options]"
-    echo "Options:"
-    echo "  -p <dir>        Directory containing .png images (required)"
-    echo "  -t <seconds>    Delay between frames (default: 0.04)"
-    echo "  -v <video>      Create image sequence from video"
-    echo "  -b <dark|light> Background lighting for ASCII (default: dark)"
-    echo "  --redraw        Delete old ASCII files and generate new ones"
-    echo "  --help          Show this help message"
-    exit 0
-}
-
-while [ $# -gt 0 ]; do
-    case "$1" in
-        -p)
-            png_directory="$2"
-            shift 2
-            ;;
-        -t)
-            frame_timing="$2"
-            shift 2
-            ;;
-        -v)
-            video="$2"
-            shift 2
-            ;;
-        -b)
-            background="$2"
-            shift 2
-            ;;
-        --redraw)
-            redraw=true
-            shift
-            ;;
-        --help)
-            show_help
-            ;;
-        *)
-            echo "Invalid option or argument: $1"
-            show_help
-            ;;
-    esac
-done
-
-ascii_directory="$png_directory/ascii"
-
-create_frames () {
-	echo "Extracting image sequence from video..."
-	ffmpeg -i "$video" -r 60 "$png_directory/$(basename "$video")%05d.png"
-}
+# Iterate over each .png file in the specified directory
+#
 
 create_ascii () {
-	for image in "$png_directory"/*.png; 
+	for image in "$directory"/*.png; 
 	do
-		local filename=$(basename "$image" .png)
+		filename=$(basename "$image" .png)
+	        # Run jp2a with the --colors option on the image
 		echo "Generating new ascii files"
-	    jp2a "$image" --colors --background=$background > "$ascii_directory/$filename.txt"
+	       	jp2a "$image" --colors --background=$background > "$directory/ascii/$filename.txt"
 	done
 }
 
-
-if [ ! -d ~/Videos/ascii ]; then
-	mkdir -p ~/Videos/ascii
-	echo "~/Videos/ascii created."
-fi
-
-if [ -n "$video" ]; then
-    if [ ! -f "$video" ]; then
-        echo "Error: Video file '$video' does not exist."
-        exit 1
-    fi
-    create_frames
-fi
-
-countdown() {
-	local count=$1
-	local nums=($(seq "$count" -1 1))
-
-	for num in ${nums[@]}; do
-		echo "$num"
-		sleep 1
-	done 
-}
-
-if $redraw; then
-	echo "Warning: All text files in Ascii directory will be deleted in 10 seconds..."
-	countdown 10
+if [ "$redraw" == "redraw" ]; then
 	echo "Deleting old ascii files..."
-	rm -f "$png_directory"/ascii/*.txt
+	rm -f "$directory"/ascii/*.txt
 	echo "Creating new ascii files..."
 	create_ascii
 fi
 
+ascii_dir="$directory/ascii"
 
-if [ ! -d $ascii_directory ];then
-	mkdir $ascii_directory
+if [ ! -d $ascii_dir ];then
+	mkdir $ascii_dir
 fi
 
-
-
-if ! find "$ascii_directory" -name '*.txt' -type f | grep -q .; then
-	echo "No ascii files found in $png_directory, creating then now..."
+if ! find "$ascii_dir" -name '*.txt' -type f | grep -q .; then
+	echo "No ascii files found in $directory, creating then now..."
 	create_ascii
 fi
 
 <<cmt
+echo "comment"
 dynamize_size () {
 	#dynamic ascii size
 	ascii_width=
@@ -138,12 +53,12 @@ dynamize_size () {
 } 
 cmt
 
+running=1
 
-while true; do
-	for ascii in "$ascii_directory/*.txt";
+while [ $running -eq 1 ];do
+	for ascii in $ascii_dir/*.txt;
 	do
-		clear
-		cat $ascii
-		sleep $frame_timing
+		clear; cat $ascii
+		sleep $timing
 	done
 done
